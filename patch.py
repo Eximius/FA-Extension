@@ -3,6 +3,12 @@ import os
 from subprocess import check_output as proc_call
 import shutil
 
+def pwrite(fd, data, offset):
+	pos = os.lseek(fd, 0, os.SEEK_CUR)
+	os.lseek(fd, offset, os.SEEK_SET)
+	assert os.write(fd, data) == len(data)
+	os.lseek(fd, pos, os.SEEK_SET)
+
 if sys.version_info[0] != 3:
 	print("Fuck you. Use python 3.")
 	os.exit(1)
@@ -15,6 +21,20 @@ def call(command):
 		print('Executing','"%s":' % ' '.join(command))
 		for line in output.splitlines():
 			print(' ',line.decode())
+
+def silly_hand_coded_sector_patch(file):
+	fd = file.fileno()
+	patch = { 0x136 : '07',
+			  0x181 : 'C5',
+			  0x188 : 'AC 24',
+			  0x1B9 : 'F0 E3 00 EC B8 04 00',
+			  0x1C8 : '00 00 00 00 00 00 00 00',
+			  0x318 : '2E 65 78 74 00 00 00 00 '
+	                  '00 15 00 00 00 B0 E8 00 00 15 00 00 00 D0 BD 00 '
+	                  '00 00 00 00 00 00 00 00 00 00 00 00 20 00 00 60'}
+
+	for pos, diff in patch.items():
+		pwrite(fd, bytes.fromhex(diff), pos)
 
 def parseCommandLine():
 	parser = ArgumentParser(description='Forged Alliance Patcher')
@@ -64,6 +84,9 @@ def main():
 
 	pe = open(filename,'r+b')
 
+	print('Patching in a .ext sector')
+	silly_hand_coded_sector_patch(pe)
+	
 	apply_hook(pe, 'hook_LoadSavedGame.s')
 
 	verisign_offset = 0xBDD000
@@ -95,3 +118,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
+	
