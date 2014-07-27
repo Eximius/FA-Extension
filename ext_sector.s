@@ -70,16 +70,22 @@ bits 32
 	g_SWldSessionInfo equ 0x10C4F58
 	g_CWldSession equ 0x10A6470
 
+	; c Symbols
+
+	extern _print_hello_world
+
 ; Begin the Code
+%ifndef CXX_BUILD
 org 0x128B000
+%endif
 section .ext
 
+global _ext_lua_LoadSavedGameHook
 _ext_lua_LoadSavedGameHook: ; (lua_state*<eax>)
 	push ebp
 	mov ebp, esp
 
 	; Function body
-	push eax
 	push ebx
 	push ecx
 	push edx
@@ -105,9 +111,7 @@ _ext_lua_LoadSavedGameHook: ; (lua_state*<eax>)
 		; Call the func
 		mov ebx, _function_table
 
-		shl eax, 2
-		add ebx, eax
-		mov ebx, [ebx]
+		mov ebx, [ebx+eax*4]
 
 		call ebx
 
@@ -119,14 +123,15 @@ _ext_lua_LoadSavedGameHook: ; (lua_state*<eax>)
 
 	; Function end
 	.cleanup:
+	mov ecx, eax
 	mov eax, esp
 	call _print_int
+	mov eax, ecx
 
 	pop esi
 	pop edx
 	pop ecx
 	pop ebx
-	pop eax
 	pop ebp
 	; Balance stack in lua_LoadSavedGame
 	mov ecx, [ebp-0xC] ; Clear SEH
@@ -177,6 +182,11 @@ _print_str: ; (const char*<eax>)
 	pop ecx
 	ret
 
+align 0x4
+global _Logf
+_Logf:
+	jmp Logf
+	
 align 0x4
 _lua_toint: ; (lus_state*, int)
 	; LuaPlus lua_tostring does not work for integers/numbers
@@ -244,9 +254,12 @@ _ext_version: dd 0.01
 align 0x4
 _info: ; (lua_state*)
 ; Returns version for this extension
+	
+	call _print_hello_world
+
 	mov eax, [_ext_version]
 	push eax
-	mov eax, [esp+0x4]
+	mov eax, [esp+0x8]
 	push eax
 	call lua_pushnumber
 	add esp, 0x8

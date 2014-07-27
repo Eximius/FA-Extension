@@ -1,18 +1,37 @@
 import sys
 import os
-from subprocess import check_call as call
+from subprocess import check_output as proc_call
 import shutil
 
 if sys.version_info[0] != 3:
 	print("Fuck you. Use python 3.")
 	os.exit(1)
 
-def nasm_compile(filename):
+from argparse import ArgumentParser
+
+def call(command):
+	output = proc_call(command)
+	if output:
+		print('Executing','"%s":' % ' '.join(command))
+		for line in output.splitlines():
+			print(' ',line.decode())
+
+def parseCommandLine():
+	parser = ArgumentParser(description='Forged Alliance Patcher')
+	parser.add_argument('-c','--c-code','--I-like-this-robust-argument-parser',
+		'--although-it-is-quite-tedious',action='store_true',help='Compile the c patch version instead.')
+	parser.add_argument('output_file',nargs='?',help='Optional filename to place the patched version at.')
+	return parser.parse_args()
+
+def nasm_compile(filename, filename_out = None):
 	assert filename.endswith('.s')
 	print("Compiling %s" % filename)
+
+	if filename_out is None:
+		filename_out = filename[:-1]+'.asm.bin'
 	# Compile ext_sector.s
-	call(['nasm', filename])
-	return open(filename[:-2],'rb').read()
+	call(['nasm', filename,'-o', filename_out])
+	return open(filename_out,'rb').read()
 
 def apply_hook(pe, filename):
 	hookf = open(filename, 'rb')
@@ -35,6 +54,8 @@ def apply_hook(pe, filename):
 
 def main():
 
+	args = parseCommandLine()
+
 	print("Patching ForgedAlliance_base.exe to ForgedAlliance_ext.exe")
 
 	shutil.copyfile('ForgedAlliance_base.exe', 'ForgedAlliance_ext.exe')
@@ -55,13 +76,22 @@ def main():
 	ext_section_filename = 'ext_sector.s'
 
 	pe.seek(ext_section_offset)
-	pe.write( nasm_compile(ext_section_filename) )
+	if args.c_code:
+		call(['python','build_ext.py'])
+		with open('build/ext_sector.bin','rb') as f:
+			size = os.fstat(f.fileno()).st_size
+			if size > 0x1500:
+				raise RuntimeError('C compiled sector size too big.')
+			else:
+				pe.write( f.read() )
+	else:
+		pe.write( nasm_compile(ext_section_filename) )
 
 	pe.close()
 	print("Done.")
-	if len(sys.argv) > 1:
-		shutil.move(filename, sys.argv[1])
-		print("Moved",filename,"to",sys.argv[1])
+	if args.output_file:
+		shutil.move(filename, args.output_file)
+		print("Moved",filename,"to",args.output_file)
 
 if __name__ == "__main__":
 	main()
