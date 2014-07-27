@@ -22,3 +22,10 @@ def define_unreferenced_funcs():
         #print("FuncEnd at 0x%08x" % pos)
         if not isCode(idaapi.getFlags(pos)):
             pos = FindCode(pos, SEARCH_DOWN)
+
+// Command I use to test FA
+ForgedAlliance_ext.exe /map "Cobalt Valley v1" /windowed 1024 768 /EnableDiskWatch /showlog
+
+// Notes on disassembly work:
+
+unknown_libname_187 overwrites UserArmy validCommandSource list

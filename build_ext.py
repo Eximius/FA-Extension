@@ -26,7 +26,7 @@ def nasm_compile(filename, filename_out, defines = {}):
 
 def gcc_compile(filename, filename_out, defines = {}):
 	print('Compiling %s' % filename)
-	cxxflags = ['-O0','-fno-asynchronous-unwind-tables']
+	cxxflags = ['-O0','-fno-exceptions','-fno-asynchronous-unwind-tables']
 	for k,v in defines.items():
 		cxxflags += ['-D','%s=%s' % (k,str(v))]
 

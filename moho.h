@@ -4,6 +4,8 @@
 
 // Nothing here is concrete.
 
+typedef unsigned int uint;
+
 struct string
 {
 	// 0x1c bytes
@@ -101,14 +103,26 @@ struct linked_list
 };
 struct moho_set
 {
-		int set_base; // integer_base >> 5 (bits in dword)
-		int unknown2;
-		void* memory;
-		void* memory_end;
-		void* unknown5;
-		void* unknown6;
-		void* unknown7;
-		void* unknown8;
+	int set_base; // integer_base >> 5 (bits in dword)
+	int unknown2;
+	uint* memory;
+	uint* memory_end;
+	void* unknown5;
+	void* unknown6;
+	void* unknown7;
+	void* unknown8;
+
+#ifdef CXX_BUILD
+	void add(int item)
+	{
+		memory[item>>5] |= 1 << (item & 0x1f);
+	}
+
+	bool operator[](int item)
+	{
+		return memory[item>>5] & (1 << (item & 0x1f));
+	}
+#endif
 };
 
 struct Unknown1 // from WLD_SetupSessionInfo
@@ -203,6 +217,8 @@ struct CWldSession
 	void* zero2;
 	void* zero3;
 	string map_name;
+
+	char stuff[0x3d0];
 
 	// at 0x3f0
 	list /*?*/ armies; // <UserArmy*>

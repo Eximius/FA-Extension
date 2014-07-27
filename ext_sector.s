@@ -69,10 +69,14 @@ bits 32
 	g_STIDriver equ 0x10C4F50
 	g_SWldSessionInfo equ 0x10C4F58
 	g_CWldSession equ 0x10A6470
+	_g_CWldSession equ 0x10A6470
 
 	; c Symbols
 
 	extern _print_hello_world
+	extern _ext_ValidateFocusArmyRequest
+
+	global _g_CWldSession
 
 ; Begin the Code
 %ifndef CXX_BUILD
@@ -81,7 +85,18 @@ org 0x128B000
 section .ext
 
 global _ext_lua_LoadSavedGameHook
-_ext_lua_LoadSavedGameHook: ; (lua_state*<eax>)
+
+; <Area for hooks>
+_HOOK_lua_LoadSavedGame: ; (lua_state*<eax>)
+	jmp _ext_do_shit_tm
+
+align 0x8
+_HOOK_CWldSession__ValidateFocusArmyRequest:
+	jmp _ext_ValidateFocusArmyRequest
+; </ Area for hooks>
+
+align 0x4
+_ext_do_shit_tm: ; (lua_state*<eax>)
 	push ebp
 	mov ebp, esp
 
@@ -343,14 +358,15 @@ _add_validCmdSource: ; (lua_state*)
 	add eax, 0x128
 
 	; Tiny fix to seemingly bugged set
-	mov edx, [eax+0x8]
-	add edx, 4
-	mov [eax+0xc], edx
+	;mov edx, [eax+0x8]
+	;add edx, 4
+	;mov [eax+0xc], edx
 
-	mov ecx, ebx
+	;mov ecx, ebx
 
-	call _moho_set_hackadd
-	;sub esp, 0x10
+	;call _moho_set_hackadd
+
+	sub esp, 0x10
 
 	;add ecx, 0x30
 	;mov ebx, esp
@@ -358,13 +374,12 @@ _add_validCmdSource: ; (lua_state*)
 	;call _print_int
 	;call Moho__BVSet_Add
 
-	;mov esi, eax
-	;call _print_int
-	;lea edi, [ecx+0x38]
-	;push esp
-	;call Moho__Set__Add
+	mov esi, ecx
+	mov edi, eax
+	push esp
+	call Moho__Set__Add
 	
-	;add esp, 0x10
+	add esp, 0x10
 
 	mov eax, 0 ; Returns 0 results to lua
 .locret:

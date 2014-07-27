@@ -48,7 +48,7 @@ def nasm_compile(filename, filename_out = None):
 	print("Compiling %s" % filename)
 
 	if filename_out is None:
-		filename_out = filename[:-1]+'.asm.bin'
+		filename_out = 'build/'+filename[:-2]+'.asm.bin'
 	# Compile ext_sector.s
 	call(['nasm', filename,'-o', filename_out])
 	return open(filename_out,'rb').read()
@@ -88,6 +88,7 @@ def main():
 	silly_hand_coded_sector_patch(pe)
 	
 	apply_hook(pe, 'hook_LoadSavedGame.s')
+	apply_hook(pe, 'hook_ValidateFocusArmyRequest.s')
 
 	verisign_offset = 0xBDD000
 	verisign_size = 0x1500
