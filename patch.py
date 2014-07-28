@@ -88,7 +88,7 @@ def main():
 	silly_hand_coded_sector_patch(pe)
 	
 	apply_hook(pe, 'hook_LoadSavedGame.s')
-	apply_hook(pe, 'hook_ValidateFocusArmyRequest.s')
+	#apply_hook(pe, 'hook_ValidateFocusArmyRequest.s')
 
 	verisign_offset = 0xBDD000
 	verisign_size = 0x1500

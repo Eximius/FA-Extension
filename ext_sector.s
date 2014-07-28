@@ -34,7 +34,7 @@ bits 32
 	LuaObject_GetString equ 0x907A90
 
 	lua_pushnumber equ 0x90CD40 ; (lua_state*, float)
-	lua_pushbool equ 0x90CF80; (lua_state*, bool)
+	_lua_pushbool equ 0x90CF80; (lua_state*, bool)
 
 	?AssignClientIndex@CLobby@Moho@@AAEXHVStrArg@gpg@@AAIAAH@Z equ 0x7C4E80
 	?AssignCommandSource@CLobby@Moho@@AAEIHHAAV?$vector@USSTICommandSource@Moho@@V?$allocator@USSTICommandSource@Moho@@@std@@@std@@AAI@ equ 0x7C4F60
@@ -63,6 +63,7 @@ bits 32
 	_stricmp equ 0xAA549E ; int (const char*, const char*)
 
 	Logf equ 0x937CB0
+	_Logf equ 0x937CB0
 
 	; Globals
 
@@ -71,12 +72,24 @@ bits 32
 	g_CWldSession equ 0x10A6470
 	_g_CWldSession equ 0x10A6470
 
+	_g_Sim equ 0x10A63F0
+
 	; c Symbols
 
-	extern _print_hello_world
-	extern _ext_ValidateFocusArmyRequest
+		; Imports
+		extern _print_hello_world
+		extern _ext_ValidateFocusArmyRequest
+		extern _cxx_AddCommandSourceId
+
+	global _stricmp
+
+	global _lua_pushbool
+
+	global _Logf
 
 	global _g_CWldSession
+	global _g_Sim
+
 
 ; Begin the Code
 %ifndef CXX_BUILD
@@ -84,14 +97,12 @@ org 0x128B000
 %endif
 section .ext
 
-global _ext_lua_LoadSavedGameHook
-
 ; <Area for hooks>
 _HOOK_lua_LoadSavedGame: ; (lua_state*<eax>)
 	jmp _ext_do_shit_tm
 
 align 0x8
-_HOOK_CWldSession__ValidateFocusArmyRequest:
+_HOOK_CWldSession__ValidateFocusArmyRequest: ; (int)
 	jmp _ext_ValidateFocusArmyRequest
 ; </ Area for hooks>
 
@@ -196,11 +207,6 @@ _print_str: ; (const char*<eax>)
 	pop edx
 	pop ecx
 	ret
-
-align 0x4
-global _Logf
-_Logf:
-	jmp Logf
 	
 align 0x4
 _lua_toint: ; (lus_state*, int)
@@ -365,8 +371,17 @@ _add_validCmdSource: ; (lua_state*)
 	;mov ecx, ebx
 
 	;call _moho_set_hackadd
+	
+	; Add source id to SimArmy
 
-	sub esp, 0x10
+	push ebx ; Source id
+	push esi ; PlayerName
+
+	mov eax, [ebp+0x8]
+	push eax ; lua_state*
+	call _cxx_AddCommandSourceId
+	add esp, 0xC
+	;sub esp, 0x10
 
 	;add ecx, 0x30
 	;mov ebx, esp
@@ -374,14 +389,14 @@ _add_validCmdSource: ; (lua_state*)
 	;call _print_int
 	;call Moho__BVSet_Add
 
-	mov esi, ecx
-	mov edi, eax
-	push esp
-	call Moho__Set__Add
-	
-	add esp, 0x10
+	;mov esi, ecx
+	;mov edi, eax
+	;push esp
+	;call Moho__Set__Add
 
-	mov eax, 0 ; Returns 0 results to lua
+	;add esp, 0x10
+
+	;mov eax, 0 ; Returns 0 results to lua
 .locret:
 	pop edi
 	pop esi

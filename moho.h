@@ -10,21 +10,45 @@ struct string
 {
 	// 0x1c bytes
 	void* ptr1;
-	void* data; // SSO space start
+	void* m_data; // SSO space start
 	void* ptr3;
 	void* ptr4;
 	void* ptr5;
 	void* ptr6;
 	// at 0x18
 	int size; // size < 0x10 => SSO
+
+#ifdef CXX_BUILD
+	const char* data()
+	{
+		if(size < 0x10)
+			return (const char*)&m_data;
+		else
+			return (const char*)m_data;
+	}
+#endif
 };
 
 struct vector
 {
 	void* unknown1;
-	void* objects_begin;
-	void* objects_end;
-	void* objects_capacity_end;
+	void** objects_begin;
+	void** objects_end;
+	void** objects_capacity_end;
+
+#ifdef CXX_BUILD
+	void* operator[](int index)
+	{
+		if(index >= size())
+			return 0;
+		return objects_begin[index];
+	}
+
+	int size()
+	{
+		return objects_end - objects_begin;
+	}
+#endif
 };
 
 struct list // probably not from visual c++, but made by gpg
@@ -105,22 +129,22 @@ struct moho_set
 {
 	int set_base; // integer_base >> 5 (bits in dword)
 	int unknown2;
-	uint* memory;
-	uint* memory_end;
-	void* unknown5;
-	void* unknown6;
-	void* unknown7;
+	uint* items_begin;
+	uint* items_end;
+	uint* items_capacity_end;
+	void* unknown6; 
+	void* unknown7; // Used as memory for Short Set 'Optimization'
 	void* unknown8;
 
 #ifdef CXX_BUILD
 	void add(int item)
 	{
-		memory[item>>5] |= 1 << (item & 0x1f);
+		items_begin[item>>5] |= 1 << (item & 0x1f);
 	}
 
 	bool operator[](int item)
 	{
-		return memory[item>>5] & (1 << (item & 0x1f));
+		return items_begin[item>>5] & (1 << (item & 0x1f));
 	}
 #endif
 };
@@ -186,14 +210,76 @@ struct SWldSessionInfo
 };
 struct UserArmy
 {
+	void* unknown1; // vtable?
+
+	string name;
+
+	// at 0x20
+	string nickname;
 
 	#ifndef FORGED_ALLIANCE
-	char datas[0x130];
+	char datas[0xf4];
 	#else
-	char datas[0x128];
+	char datas[0xec];
 	#endif
 	// at 0x130 Moho | at 0x128 FA
 	moho_set mValidCommandSources;
+	// at 0x148 FA
+	uint color;
+	// at 0x16C FA
+	int faction;
+};
+struct SimArmy
+{
+#ifdef FORGED_ALLIANCE
+	// Forged Alliance Code
+	void* vtable;
+	int unknown3;
+	int unknown4;
+
+	string name;
+	string nickname;
+
+	char datas[0xec];
+	// at 0x138 Moho | at 0x130 FA
+	moho_set mValidCommandSources;
+
+	// at 0x158 FA
+	string mArmyType; //? 'human' for players
+
+	// at 0x1C4 FA
+	struct{
+		float funknown1;
+		float funknown2;
+	} float_struct;
+
+	// at 0x1F0 FA
+	int unknown1;
+	int unknown2;
+	// at 0x1F8 FA
+	string unknown5;
+#else
+	// Moho Code
+
+	// at 0x138 Moho | at 0x130 FA
+	moho_set mValidCommandSources;
+#endif
+};
+
+struct Sim
+{
+	// 0xAF8 bytes
+
+#ifdef FORGED_ALLIANCE
+	char datas[0x90C];
+	// at 0x91C Moho | at 0x90C FA
+	vector armies;// <class Moho::SimArmy *>
+	// at 0x93C Moho | at 0x92C FA
+	int ourCmdSource; // possibly just current in simulation.
+	// at 0x984 FA
+	void* thing;
+#else
+#endif
 };
 struct CWldSession 
 {
@@ -218,7 +304,7 @@ struct CWldSession
 	void* zero3;
 	string map_name;
 
-	char stuff[0x3d0];
+	char stuff[0x3ac];
 
 	// at 0x3f0
 	list /*?*/ armies; // <UserArmy*>
