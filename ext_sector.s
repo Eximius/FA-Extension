@@ -33,6 +33,15 @@ bits 32
 	??1LuaObject@LuaPlus@@QAE@XZ equ 0x9075D0
 	LuaObject_GetString equ 0x907A90
 
+	;	struct LuaStackObject
+	;	{
+	;		// 0x8 bytes
+	;		LuaState* state;
+	;		int stack_index;
+	;	};
+	
+	LuaStackObject__GetBoolean equ 0x415560
+
 	lua_pushnumber equ 0x90CD40 ; (lua_state*, float)
 	_lua_pushbool equ 0x90CF80; (lua_state*, bool)
 
@@ -54,6 +63,7 @@ bits 32
 	?lua_tostring@@YAPBDPAUlua_State@@H@Z equ 0x90CA90
 	_lua_tostring equ 0x90CA90
 	_lua_tonumber equ 0x90C9F0 
+	_lua_toboolean equ 0x90CA40
 	__imp_atoi equ 0xA835CE
 
 	__ftol2_sse equ 0xA89CC0
@@ -80,7 +90,7 @@ bits 32
 		extern _print_hello_world
 		extern _ext_ValidateFocusArmyRequest
 		extern _cxx_AddCommandSourceId
-		extern _cxx_AddCommandSourceId_byId
+		extern _cxx_SetCommandSourceId
 
 	global _stricmp
 
@@ -120,8 +130,16 @@ _ArmyGetHandicap_addValidCmdSource:
 	call lua_gettop
 	add esp, 0x4
 
-	cmp eax, 0x2
+	cmp eax, 0x3
 	jnz .bad_argument_list
+		; Get set_or_unset
+		push 3
+		push ebx
+		call _lua_toboolean
+		add esp, 0x8
+
+		push eax ; push set_or_unset
+
 		; Get sourceId
 		push 2
 		push ebx
@@ -136,12 +154,12 @@ _ArmyGetHandicap_addValidCmdSource:
 		call _lua_toint
 		add esp, 0x8
 
-		push eax
+		push eax ; push armyId
 		; Add source id to SimArmy
 
 		push ebx ; lua_state*
-		call _cxx_AddCommandSourceId_byId
-		add esp, 0xC
+		call _cxx_SetCommandSourceId
+		add esp, 0x10
 
 		pop ebx
 		ret

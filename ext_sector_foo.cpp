@@ -41,12 +41,15 @@ extern "C" int cxx_AddCommandSourceId(lua_state* lua, const char* playerName, in
 	lua_pushbool(lua, false);
 	return 1;
 }
-extern "C" int cxx_AddCommandSourceId_byId(lua_state* lua, int armyId, int sourceId)
+extern "C" int cxx_SetCommandSourceId(lua_state* lua, int armyId, int sourceId, bool set_or_unset)
 {
 	Sim* sim = g_Sim;
 	SimArmy* army = (SimArmy*)sim->armies[armyId];
 
-	army->mValidCommandSources.add(sourceId);
+	if(set_or_unset)
+		army->mValidCommandSources.add(sourceId);
+	else
+		army->mValidCommandSources.remove(sourceId);
 	lua_pushbool(lua, true);
 	return 1;
 }

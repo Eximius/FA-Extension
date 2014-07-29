@@ -142,6 +142,11 @@ struct moho_set
 		items_begin[item>>5] |= 1 << (item & 0x1f);
 	}
 
+	void remove(int item)
+	{
+		items_begin[item>>5]  &= ~( 1 << (item & 0x1f) );
+	}
+
 	bool operator[](int item)
 	{
 		return items_begin[item>>5] & (1 << (item & 0x1f));

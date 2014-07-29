@@ -87,6 +87,9 @@ def main():
 	print('Patching in a .ext sector')
 	silly_hand_coded_sector_patch(pe)
 	
+	if not os.path.exists('build/'):
+		os.makedirs('build/')
+
 	hooks = ['hook_LoadSavedGame.s',
 			 'hook_ArmyGetHandicap.s']#,
 			 #'hook_ValidateFocusArmyRequest.s']
