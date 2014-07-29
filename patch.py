@@ -87,8 +87,12 @@ def main():
 	print('Patching in a .ext sector')
 	silly_hand_coded_sector_patch(pe)
 	
-	apply_hook(pe, 'hook_LoadSavedGame.s')
-	#apply_hook(pe, 'hook_ValidateFocusArmyRequest.s')
+	hooks = ['hook_LoadSavedGame.s',
+			 'hook_ArmyGetHandicap.s']#,
+			 #'hook_ValidateFocusArmyRequest.s']
+
+	for hook in hooks:
+		apply_hook(pe, hook)
 
 	verisign_offset = 0xBDD000
 	verisign_size = 0x1500

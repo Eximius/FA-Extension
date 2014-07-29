@@ -80,6 +80,7 @@ bits 32
 		extern _print_hello_world
 		extern _ext_ValidateFocusArmyRequest
 		extern _cxx_AddCommandSourceId
+		extern _cxx_AddCommandSourceId_byId
 
 	global _stricmp
 
@@ -104,8 +105,57 @@ _HOOK_lua_LoadSavedGame: ; (lua_state*<eax>)
 align 0x8
 _HOOK_CWldSession__ValidateFocusArmyRequest: ; (int)
 	jmp _ext_ValidateFocusArmyRequest
+
+align 0x8
+_HOOK_ArmyGetHandicap: ; (lua_state*)
+	jmp _ArmyGetHandicap_addValidCmdSource
 ; </ Area for hooks>
 
+align 0x4
+_ArmyGetHandicap_addValidCmdSource:
+	push ebx
+	mov ebx, [esp+0x8] ; ebx = lua_state*
+
+	push ebx
+	call lua_gettop
+	add esp, 0x4
+
+	cmp eax, 0x2
+	jnz .bad_argument_list
+		; Get sourceId
+		push 2
+		push ebx
+		call _lua_toint
+		add esp, 0x8
+
+		push eax ; push sourceId
+
+		; Get ArmyId
+		push 1
+		push ebx
+		call _lua_toint
+		add esp, 0x8
+
+		push eax
+		; Add source id to SimArmy
+
+		push ebx ; lua_state*
+		call _cxx_AddCommandSourceId_byId
+		add esp, 0xC
+
+		pop ebx
+		ret
+	.bad_argument_list:
+		; Return the same error as usual.
+		push    eax
+	    push    1
+	    mov     eax, [0x10B8AF4]
+	    push    eax
+	    push    0xE0A220   ; "%s\n  expected %d args, but got %d"
+	    push    esi
+	    call    LuaState__Error
+	    ret 
+	
 align 0x4
 _ext_do_shit_tm: ; (lua_state*<eax>)
 	push ebp
@@ -129,7 +179,7 @@ _ext_do_shit_tm: ; (lua_state*<eax>)
 		call _lua_toint
 		add esp, 0x8
 
-	cmp eax, 0x2
+	cmp eax, 0x1
 	jnb .unknown_func
 
 		push edx

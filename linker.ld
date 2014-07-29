@@ -1,5 +1,5 @@
 /* Entry point; at the very start of the binary */
-ENTRY(_ext_lua_LoadSavedGameHook)
+/*ENTRY(_ext_lua_LoadSavedGameHook)*/
 
 align_size = 0x100; /* squeeeeeze */
 
