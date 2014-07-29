@@ -27,6 +27,11 @@ def nasm_compile(filename, filename_out, defines = {}):
 def gcc_compile(filename, filename_out, defines = {}):
 	print('Compiling %s' % filename)
 	cxxflags = ['-O0','-fno-exceptions','-fno-asynchronous-unwind-tables']
+	
+	# On linux, c code by default does not use leading underscore.
+	if os.name != 'nt': 
+		cxxflags += ['-fleading-underscore']
+
 	for k,v in defines.items():
 		cxxflags += ['-D','%s=%s' % (k,str(v))]
 
@@ -38,7 +43,8 @@ def gcc_link(filenames, filename_out):
 	#call(['g++','-shared','-static',
 	#	  '-Wl,-T,linker.ld,-m,i386pe'] + ldflags \
 	#	  + list(filenames) + ['-o',filename_out])
-	call(['ld','-T','linker.ld','-static','-m','i386pe'] + ldflags \
+	obj_type = 'i386pe' if os.name == 'nt' else 'elf_i386'
+	call(['ld','-T','linker.ld','-static','-m', obj_type] + ldflags \
 		  + list(filenames) + ['-o',filename_out])
 
 def rip_out_binary(filename, filename_out):

@@ -1,6 +1,6 @@
 import sys
 import os
-from subprocess import check_output as proc_call
+from subprocess import check_output as proc_call, CalledProcessError
 import shutil
 
 def pwrite(fd, data, offset):
@@ -16,7 +16,10 @@ if sys.version_info[0] != 3:
 from argparse import ArgumentParser
 
 def call(command):
-	output = proc_call(command)
+	try:
+		output = proc_call(command)
+	except CalledProcessError as e:
+		output = e.output
 	if output:
 		print('Executing','"%s":' % ' '.join(command))
 		for line in output.splitlines():
