@@ -1,0 +1,20 @@
+; Hooks that are automagically mapped
+0x912C00 jmp _luaG_typeerror
+0x906E30 this_jmp _LuaObject_Del 0x0
+0x9072F0 this_jmp _LuaObject_GetString 0x0
+0x9082D0 this_jmp _LuaObject__LuaObject_LuaStackObjectp 0x4
+0x908220 this_jmp _LuaObject_LuaObject_LuaStatep_idx 0x8
+0x908360 this_jmp _LuaObject_op_eq_StackObject 0x4
+0x9087c0 this_jmp _LuaObject_op_subscript_cstr 0x8
+0x907570 this_jmp _LuaObject_PushStack_lua_Statep 0x4
+0x9075E0 this_jmp _LuaObject_PushStack_LuaStatep 0x8
+0x906E90 this_jmp _LuaObject_Register 0xC
+0x909F10 jmp _LuaPlusH_next 
+0x909EF0 this_jmp _LuaState_GetGlobals 0x4
+
+0x9090A0 this_jmp _LuaObject_AssignNewUserData_RRef 0xC
+0x90D0C0 jmp _lua_newuserdata_RRef
+0x909030 this_jmp _LuaObject_AssignNewUserData_RTypep 0xC
+0x90D040 jmp _lua_newuserdata_RTypep
+
+0x9238F0 jmp _luaplus_getstateuserdata

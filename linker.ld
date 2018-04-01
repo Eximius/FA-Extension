@@ -1,27 +1,79 @@
 /* Entry point; at the very start of the binary */
 /*ENTRY(_ext_lua_LoadSavedGameHook)*/
 
-align_size = 0x100; /* squeeeeeze */
+align_size = 0x1000; /* squeeeeeze */
 
+MEMORY
+{
+	dummy (RWX) : ORIGIN = 0x500000, LENGTH = 0x5000
+    ext (RX) : ORIGIN = 0x128B000, LENGTH = 0x100000
+    ext_data (RW) : ORIGIN = 0x138B000, LENGTH = 0x40000
+    ext_idata (R) : ORIGIN = 0x138C000, LENGTH = 0x5000
+}
 /* Binary sections */
 SECTIONS
-{
-	/* '.' is the location counter. It counts locations. */
-	. = 0x128B000;
+{   
+	. = SIZEOF_HEADERS;
+	. = ALIGN(align_size);
+
+	. = 0x500000;
+
+	.dummy_0 : {
+		*(.dummy_0)
+	}
+	.dummy_1 : {
+		*(.dummy_1)
+	}
+	.dummy_2 : {
+		*(.dummy_2)
+	}
+	.dummy_3 : {
+		*(.dummy_3)
+	}
+	.dummy_4 : {
+		*(.dummy_4)
+	}
+	.dummy_5 : {
+		*(.dummy_5)
+	}
 
 	/* Code */
-	.text BLOCK(align_size):
+	.ext : 
 	{
 		*(.ext)
-		*(.text)
-	}
+		EXCLUDE_FILE (lj_*) *(.text*)
 
+		. = ALIGN(0x10000);
+		lj_*(.text*)
+	} >ext
+	
 	/* Read-only data. */
-	.rdata BLOCK(align_size):
+	.ext_data :
 	{
-		*(.rdata)
+        *(.idata*)
+		*(.rdata*)
+		*(.data)
+		*(.bss)
+		
+		*(COMMON)
+	} >ext_data
+	
+	/*.= 0x138C000;
+	
+	.ext_idata :
+	{
+	} */
+	
+	.debug ALIGN(align_size) : {
+		*(.debug*)
 	}
-
+	
+	/* Discard the taint */
+	/*/DISCARD/ :
+	{
+        *(.debug*)
+	}*/
+	
 	/* Read-write data (initialized) */
 	/*.data BLOCK(align_size) :
 	{`

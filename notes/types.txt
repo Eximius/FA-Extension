@@ -1,0 +1,51 @@
+
+Types:
+
+luajit
+
+#define LJ_TNIL			(~0u)
+#define LJ_TFALSE		(~1u)
+#define LJ_TTRUE		(~2u)
+#define LJ_TLIGHTUD		(~3u)
+#define LJ_TSTR			(~4u)
+#define LJ_TUPVAL		(~5u)
+#define LJ_TTHREAD		(~6u)
+#define LJ_TPROTO		(~7u)
+#define LJ_TFUNC		(~8u)
+#define LJ_TTRACE		(~9u)
+#define LJ_TCDATA		(~10u)
+#define LJ_TTAB			(~11u)
+#define LJ_TUDATA		(~12u)
+/* This is just the canonical number type used in some places. */
+#define LJ_TNUMX		(~13u)
+
+moho luaplus
+
+/* Types:
+	-1 - None
+	0 - Nil
+	1 - Boolean
+	2 - LightUserData // || UserData
+	3 - Number // || Integer
+	4 - String
+	5 - Table
+	6 - CFunction
+	7 - Function
+	8 - UserData
+*/
+
+// Lua Defines in LuaPlus 5.1
+
+#define LUA_TNONE		(-1)
+
+#define LUA_TNIL		0
+#define LUA_TBOOLEAN		1
+#define LUA_TLIGHTUSERDATA	2
+#define LUA_TNUMBER		3
+#define LUA_TSTRING		4
+#define LUA_TTABLE		5
+#define LUA_TFUNCTION		6
+#define LUA_TUSERDATA		7
+#define LUA_TTHREAD		8
+#if LUA_WIDESTRING
+#define LUA_TWSTRING            9

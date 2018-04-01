@@ -14,9 +14,11 @@ struct string
 	void* ptr3;
 	void* ptr4;
 	void* ptr5;
-	void* ptr6;
+
+	// at 0x14
+	int size;
 	// at 0x18
-	int size; // size < 0x10 => SSO
+	int capacity; // size < 0x10 => SSO
 
 #ifdef CXX_BUILD
 	const char* data()
@@ -80,30 +82,32 @@ struct lua_state
 {
 	int dummy;
 };
-struct LuaState
-{
-	lua_state* _lua_state;
-	void* fuckknows1;
-	void* knowsfuck2;
-	void* fnows3kuck;
-	void* important1;
 
-};
-struct LuaStackObject
-{
-	// 0x8 bytes
-	LuaState* state;
-	int stack_index;
-};
+struct lua_State;
+struct LuaState;
+
+typedef unsigned int lu_int32;
+struct GCObject;
+
+#ifdef CXX_BUILD
+	struct TValue;
+#endif
+
 struct LuaObject
 {
 	// 0x14 bytes
 
-	void* unknown1; // objects_end?
-	void* unknown2; // objects_start?
+/*	
+	Definition in LuaPlus:
+	LuaObject* m_next;		   // only valid when in free list
+	LuaObject* m_prev;		   // only valid when in used list
+*/
+	void* gc_prev; // objects_end?   
+	void* gc_next; // objects_start?
 	LuaState* m_state;
+
 	int type;
-	void* unknown5; // n_objects??
+	void* p_union; // = RRef* if type == 8
 
 	/* Types:
 		-1 - None
@@ -117,7 +121,271 @@ struct LuaObject
 		7 - Function
 		8 - UserData
 	*/
+
+#ifdef CXX_BUILD
+	TValue* val() {
+		return (TValue*)&type;
+	}
+
+	void __thiscall __AddToUsedList(LuaState*);
+
+	void AddToUsedList(LuaState* state) {
+		printf("AddToUsedList 0x%p, 0x%p\n", this, state);
+		__AddToUsedList(state);
+	}
+	void RemoveFromUsedList() {
+		printf("RemoveFromUsedList 0x%p, 0x%p\n", this, m_state);
+		if(m_state) {
+			*(void**)gc_next = gc_prev;
+			*(((void**)gc_prev)+1) = gc_next;
+			gc_prev = (void*)-1;
+			gc_next = (void*)-1;
+		}
+	}
+#endif
 };
+
+struct LuaState
+{
+	lua_State* _lua_state;
+	void* fuckknows1; // init -> 0
+	void* knowsfuck2;
+	void* fnows3kuck;
+	void* important1;
+
+	// at 0xC
+	LuaObject obj;
+
+	// at 0x20
+	LuaState* m_rootState;  // can point to this LuaState*
+
+	// at 0x24
+	void* list_ptr1; // -> list_ptr2
+
+	int zero1; // init -> 0
+
+	// at 0x2c
+	void* list_ptr2; // -> 0
+
+	// at 0x30
+	void* list_ptr3; // -> list_ptr1
+
+
+};
+
+struct global_State 
+{
+	// struct stringtable:
+	GCObject **hash;
+	lu_int32 nuse;  /* number of elements */
+	int size;
+
+	// at 0x24
+	int sz2; //?
+	void* obj1;
+	// at 0x2c
+	int sz1; //?
+
+	// at 0x44
+	lua_State* mainthread; // 99%
+
+	// at 0x14c
+	void* gc_function; // void (*)(void*)
+
+	// at 0x138
+	void* _LuaPlus_ud;
+	void* _LuaPlus_realloc;
+	void* _LuaPlus_free;
+
+	// at 0x148
+	void* global_user_data;
+
+};
+
+/* global_State as defined in LuaPlus 5.1 */
+/*
+** `global state', shared by all threads of this state
+*/
+// typedef struct global_State {
+//   stringtable strt;  /* hash table for strings */
+     // at 0xC
+//   lua_Alloc frealloc;  /* function to reallocate memory */
+	// at 0x10
+//   void *ud;         /* auxiliary data to `frealloc' */
+//   lu_byte currentwhite;
+//   lu_byte gcstate;  /* state of garbage collector */
+//   int sweepstrgc;  /* position of sweep in `strt' */
+//   GCObject *rootgc;  /* list of all collectable objects */
+	// at 0x20
+//   GCObject **sweepgc;  /* position of sweep in `rootgc' */
+//   GCObject *gray;  /* list of gray objects */
+//   GCObject *grayagain;  /* list of objects to be traversed atomically */
+//   GCObject *weak;  /* list of weak tables (to be cleared) */
+	// at 0x30
+//   GCObject *tmudata;  /* last element of list of userdata to be GC */
+//   Mbuffer buff;  /* temporary buffer for string concatentation */ // size 0xC
+	// at 0x40
+//   lu_mem GCthreshold;
+//   lu_mem totalbytes;  /* number of bytes currently allocated */
+//   lu_mem estimate;  /* an estimate of number of bytes actually in use */
+//   lu_mem gcdept;  /* how much GC is `behind schedule' */
+//   int gcpause;  /* size of pause between successive GCs */
+//   int gcstepmul;  /* GC `granularity' */
+//   lua_CFunction panic;  /* to be called in unprotected errors */
+//   TValue l_registry;
+//   struct lua_State *mainthread;
+//   UpVal uvhead;  /* head of double-linked list of all open upvalues */
+//   struct Table *mt[NUM_TAGS];  /* metatables for basic types */
+//   TString *tmname[TM_N];  /* array with tag-method names */
+// #if LUAPLUS_EXTENSIONS
+//   void (*userGCFunction)(void*);
+//   void* gchead_next;		   // only valid when in free list
+//   void* gchead_prev;		   // only valid when in used list
+//   void* gctail_next;		   // only valid when in free list
+//   void* gctail_prev;		   // only valid when in used list
+//   void (*loadNotifyFunction)(lua_State *L, const char *);
+// #endif /* LUAPLUS_EXTENSIONS */
+// } global_State;
+
+
+struct GCObject;
+struct TObject
+{
+	int type;
+	void* p_union;
+};
+
+struct CallInfo;
+
+typedef unsigned char lu_byte;
+
+struct lua_State
+{
+	// Assuming LuaPlus was built with !LUA_4REFCOUNT
+	union{
+		GCObject *next; 
+		void* lj;
+	};
+
+	lu_byte tt; lu_byte marked; // CommonHeader
+
+	lu_byte status;
+
+	// at 0x8
+	void* stack[2];
+	//StkId top;  /* first free slot in the stack */
+	//StkId base;  /* base of current function */
+
+	// at 0x10 
+	global_State *l_G;
+
+	CallInfo* ci;
+
+	// at 0x18
+	int some_size;
+	void* mem_ptr;
+	// at 0x20
+	int mem_size; //lua_State* _main_state; // ?
+
+	void* unk2[3];
+
+	// at 0x30
+	TObject globals;
+
+	// at 0x40
+	void* unk1;
+
+	// at 0x44
+	void* user_data; // === LuaState*, because fucking reasons
+
+};
+/** LuaPlus 5.1 source: */
+/*
+** `per thread' state
+*/
+// struct lua_State {
+//   CommonHeader;
+	// at 0x8
+//   lu_byte status;
+	// at 0xC
+//   StkId top;  /* first free slot in the stack */
+	// at 0x10
+//   StkId base;  /* base of current function */
+//   global_State *l_G;
+//   CallInfo *ci;  /* call info for current function */
+//   const Instruction *savedpc;  /* `savedpc' of current function */
+	// at 0x20
+//   StkId stack_last;  /* last free slot in the stack */
+//   StkId stack;  /* stack base */
+//   CallInfo *end_ci;  /* points after end of ci array*/
+//   CallInfo *base_ci;  /* array of CallInfo's */
+//   int stacksize;
+//   int size_ci;  /* size of array `base_ci' */
+//   unsigned short nCcalls;  /* number of nested C calls */
+//   unsigned short baseCcalls;  /* nested C calls when resuming coroutine */
+//   lu_byte hookmask;
+//   lu_byte allowhook;
+//   int basehookcount;
+//   int hookcount;
+//   lua_Hook hook;
+//   TValue l_gt;  /* table of globals */
+//   TValue env;  /* temporary place for environments */
+//   GCObject *openupval;  /* list of open upvalues in this stack */
+//   GCObject *gclist;
+//   struct lua_longjmp *errorJmp;  /* current error recover point */
+//   ptrdiff_t errfunc;  /* current error handling function (stack index) */
+// #if LUA_MEMORY_STATS
+// #ifdef _DEBUG
+//   const char* allocName;
+// #endif /* _DEBUG */
+//   unsigned int allocFlags;
+// #endif /* LUA_MEMORY_STATS */
+// };
+
+struct RType // at least 0x58 size
+{
+	int unk1;
+	int unk2;
+	int type_size;
+
+	// at 0x54
+	void* defcon; // void (*)(void* rvo, void* This)
+
+	// at 0x5c
+	int flags; // ?
+};
+
+struct RObject // ? (created from RType)
+{
+	// Stored in LUA as userdata (8)
+	struct {
+		void* unk1; // = global_State[0x14]
+		char type_tag = 8;
+		bool something; // ? ; = RType->flags & 2
+		char pad[2]; // ?
+
+		void* crap; // = global_State[0x118]
+
+		RType* type;
+	} _rtype; // Type-info data (0x10 size)
+
+	char data[];
+	// char[type_size]; of data
+};
+
+struct RRef
+{
+	void* obj;
+	RType* type;
+};
+
+struct LuaStackObject
+{
+	// 0x8 bytes
+	LuaState* state;
+	int stack_index;
+};
+
 
 // Moho
 

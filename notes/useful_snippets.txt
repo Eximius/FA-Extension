@@ -1,0 +1,1 @@
+cat missing_refs.bad.lst | sed -nr 's/.*`([a-zA-Z_]+)'"'"'.*/\1/p' | sort -u > missing_refs.lst

@@ -1,0 +1,39 @@
+
+
+It has become apparent, that LuaPlus calls directly to the inside of the lua library for LuaObject accesses such as creating tables and assigning to table keys. This makes the process of coaxing FA to use luajit seemingly much harder.
+
+All luaopen_ calls must be also hooked.
+
+List of functions that are used by LuaPlus objects:
+
+Defined in ltable.c:
+luaH_new 0x926b70
+luaH_free 0x926bf0
+luaH_index 0x926e60
+luaH_next 0x926ef0
+luaH_get 0x926d60
+luaH_getnum 0x926ca0
+luaH_getstr 0x926d20
+luaH_set 0x926db0
+luaH_setnum 0x927310
+
+Defined in lvm.c:
+luaV_gettable 0x928c30
+luaV_settable 0x928ca0
+
+Other functions used but not in SCSE list:
+
+LUA_API int   (lua_error) (lua_State *L); // at 0x90D2A0
+
+SCSE list mistakes:
+
+lua_call not at 0x90CC15
+lua_setfenv at 0x90CC15
+
+// lua_gettop not at 0x90BDF0 ??? wat ???
+
+Other notes:
+
+LuaPlus_default_mem_realloc(L, ptr, size, 0 == free)
+// luaM_freearray(L, t->array, t->sizearray, TObject)
+// luaM_freelem(L, t)
