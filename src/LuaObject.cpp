@@ -84,6 +84,9 @@ extern "C" LuaStackObject* LuaObject_PushStack_LuaStatep(LuaObject* This, LuaSta
 
   LOG_PUSH
 
+  rvo->state = Lp_L_m;
+  rvo->stack_index = lua_gettop(L);
+
   return rvo;
 }
 
@@ -102,7 +105,9 @@ extern "C" LuaObject* LuaObject_op_subscript_cstr(LuaObject* This, LuaObject* rv
 {
   lua_State* L = (lua_State*)This->m_state->_lua_state->lj;
 
-  printf("op_sub: 0x%p 0x%p (%s) [ \"%s\" ]\n", L, ((M_TV*)&This->type)->lj(), ((M_TV*)&This->type)->str(), cstr);
+  printf("op_sub: 0x%p 0x%p (%s) [ \"%s\" ]\n", L, This->val()->lj(), This->val()->str(), cstr);
+
+  //assert(This->val()->type() == LUA_TTABLE);
 
   CHECK_STACK
 
@@ -118,11 +123,8 @@ extern "C" LuaObject* LuaObject_op_subscript_cstr(LuaObject* This, LuaObject* rv
   memset(rvo, 0, 0x14);
 
   rvo->AddToUsedList(This->m_state);
-  //rvo->m_state = This->m_state;
-
-  TValue* lj_v = (TValue*)malloc(0x8);
-  copyTV(L, lj_v, L->top-1);
-  *rvo->val() = M_TV(lj_v);
+  
+  *rvo->val() = M_TV(L->top-1);
 
   lua_settop(L, -3);
 
@@ -150,4 +152,22 @@ extern "C" LuaObject* LuaObject_op_eq_StackObject(LuaObject* This, LuaStackObjec
 extern "C" const char* LuaObject_GetString(LuaObject* This)
 {
   return This->val()->get_str();
+}
+
+extern "C" void LuaObject_SetMetatable_LuaObjectR(LuaObject* This, LuaObject* mt)
+{
+  lua_State* L = Lp_to_L(This->m_state);
+  printf("LuaObject_SetMetatable 0x%p, %s, %s\n",
+    L, This->val()->str(), mt->val()->str());
+
+  CHECK_STACK_N(2);
+  copyTV(L, L->top++, This->val()->lj());
+  printf("1\n");
+  copyTV(L, L->top++, mt->val()->lj());
+  printf("2\n");
+
+  lua_setmetatable(L, -2);
+  printf("3\n");
+
+  L->top--;
 }

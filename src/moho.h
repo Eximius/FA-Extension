@@ -102,13 +102,15 @@ struct LuaObject
 	LuaObject* m_next;		   // only valid when in free list
 	LuaObject* m_prev;		   // only valid when in used list
 */
-	void* gc_prev; // objects_end?   
-	void* gc_next; // objects_start?
+	LuaObject* m_next; 
+	LuaObject* m_prev;
 	LuaState* m_state;
 
+	// struct TObject {
 	int type;
 	void* p_union; // = RRef* if type == 8
-
+	// } // TObject
+	
 	/* Types:
 		-1 - None
 		0 - Nil
@@ -136,10 +138,10 @@ struct LuaObject
 	void RemoveFromUsedList() {
 		printf("RemoveFromUsedList 0x%p, 0x%p\n", this, m_state);
 		if(m_state) {
-			*(void**)gc_next = gc_prev;
-			*(((void**)gc_prev)+1) = gc_next;
-			gc_prev = (void*)-1;
-			gc_next = (void*)-1;
+			m_next->m_prev = m_prev;
+			m_prev->m_next = m_next;
+			m_prev = (LuaObject*)-1;
+			m_next = (LuaObject*)-1;
 		}
 	}
 #endif
@@ -150,8 +152,8 @@ struct LuaState
 	lua_State* _lua_state;
 	void* fuckknows1; // init -> 0
 	void* knowsfuck2;
-	void* fnows3kuck;
-	void* important1;
+	// void* fnows3kuck;
+	// void* important1;
 
 	// at 0xC
 	LuaObject obj;
@@ -160,17 +162,20 @@ struct LuaState
 	LuaState* m_rootState;  // can point to this LuaState*
 
 	// at 0x24
-	void* list_ptr1; // -> list_ptr2
 
-	int zero1; // init -> 0
+	// likely LuaObject* dlist? {
+		LuaObject* used_list; // -> list_ptr2 // gc_next?
+		
+		int zero1; // init -> 0 
 
-	// at 0x2c
-	void* list_ptr2; // -> 0
+		// Likely dummy list_end node {
+			// at 0x2c
+			void* list_ptr2; // -> 0
 
-	// at 0x30
-	void* list_ptr3; // -> list_ptr1
-
-
+			// at 0x30
+			void* list_ptr3; // -> list_ptr1 // prev
+		// } list_end
+	// } gc_list;
 };
 
 struct global_State 

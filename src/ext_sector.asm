@@ -130,12 +130,19 @@ bits 32
         
         global _gpg_InitSoundSystem 
         _gpg_InitSoundSystem equ 0x4D88C0
+
+
+        global _RType_new_defcon
+        _RType_new_defcon equ 0x924260
+
+        global _RType_new_copycon
+        _RType_new_copycon equ 0x924340
         
 section .rdata
 
 s_fucked db `Welp, that's a bad api ordinal.\n`,0
 s_fucked_env db `Welp, somebody wants to push the env.\n`,0
-s_lua_call db `lua library call 0x%x ( 0x%08x, 0x%08x, 0x%08x, 0x%08x)\n`,0
+s_lua_call db `lua library call 0x%x ( 0x%08x, 0x%08x, 0x%08x, 0x%08x) from 0x%x\n`,0
 s_found_luajit db `Found luajit state 0x%x\n`,0
 
 ; Begin the Code
@@ -243,8 +250,6 @@ dd 0
 extern _lua_newuserdata_RTypep
 dd _lua_newuserdata_RTypep
 
-global _RType_new_defcon
-_RType_new_defcon equ 0x924260
 
 align 0x4
 
@@ -342,23 +347,27 @@ extern _proxy_malloc
 
 
 ; Other guff
-    
+
+extern _log_lua_call
+ 
 align 0x4
 __lua_library_call: ; (int lua_api_ordinal<eax>)
     ;push ebx
     ;call _check_load_msvc_imports
-    push dword [esp+0x10]
-    push dword [esp+0x10]
-    push dword [esp+0x10]
-    push dword [esp+0x10]
+    push dword [esp]
+    push dword [esp+0x14]
+    push dword [esp+0x14]
+    push dword [esp+0x14]
+    push dword [esp+0x14]
 
     push eax
-    push s_lua_call
-    call _printf
-    add esp, 0x4
+    ; push s_lua_call
+    ; call _printf
+    ; add esp, 0x4
+    call _log_lua_call
     pop eax
 
-    add esp, 0x10
+    add esp, 0x14
 
     mov ecx, eax ; Temp save ordinal for logging in glue.s
     cmp eax, 0

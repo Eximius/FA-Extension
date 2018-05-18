@@ -9,6 +9,8 @@
 0x907570 this_jmp _LuaObject_PushStack_lua_Statep 0x4
 0x9075E0 this_jmp _LuaObject_PushStack_LuaStatep 0x8
 0x906E90 this_jmp _LuaObject_Register 0xC
+0x907660 this_jmp _LuaObject_SetMetatable_LuaObjectR 0x4
+
 0x909F10 jmp _LuaPlusH_next 
 0x909EF0 this_jmp _LuaState_GetGlobals 0x4
 

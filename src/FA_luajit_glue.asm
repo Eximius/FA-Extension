@@ -8,7 +8,8 @@ bits 32
 
 section .rdata
 
-sh_str db `Shitdicks\n`,0
+sh_str db `Shitdicks: %s\n`,0
+s_nil  db `nil`,0 
 s_info db `Unimplemented lua api ordinal: 0x%x %d\n`,0
 s_MSVC_Loaded db `MSVC loaded!\n`, 0
 
@@ -172,12 +173,43 @@ _memcpy: ; (void*, const void*, int)
 
 ; Symbols required from kernel32.dll and msvcr80.dll
 
+extern __imp___iob
+__iob equ __imp___iob
+
+extern __imp__fflush
+_fflush equ __imp__fflush
+
+extern __imp__exit
+_exit equ __imp__exit
+
 global _eat_shit_and_die
 global eat_shit_and_die
 _eat_shit_and_die:
 eat_shit_and_die:
+    cmp dword [esp+0x4], 0
+    jz .push_nil
+    push dword [esp+0x4]
+    jmp .print
+    .push_nil:
+    push s_nil
+    .print:
     push sh_str
     call _printf
+
+    mov eax, __iob+0x20
+    push eax
+    mov eax, _fflush ; Flush stdout
+    call eax
+
+    ; jmp .illegal
+    ; .illegal:
+    ; db 1
+    ; db 2
+    ; db 3
+    ; db 4
+    ; db 5
+    ; db 6
+
     mov eax, [0]
     ret
 

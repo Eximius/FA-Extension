@@ -58,9 +58,6 @@ extern "C" int cxx_SetCommandSourceId(lua_state* lua, int armyId, int sourceId, 
 
 #include <cmath>
 
-extern "C" void printf(const char* fmt, ...);
-extern "C" void eat_shit_and_die();
-
 extern "C" double floor(double x){
 	return std::floor(x);
 }
@@ -72,8 +69,6 @@ extern "C" void *memset(char *str, int c, size_t n)
 }
 
 #include <stdarg.h>
-
-struct FILE;
 
 extern "C" int vfprintf ( FILE * stream, const char * format, va_list arg );
 
@@ -87,7 +82,7 @@ extern "C" int fprintf(FILE *stream, const char *format, ...)
 }
 extern "C" void _assert(const char *__assertion, const char *__file, int __line)
 {
-	printf("Assertion %s failed. %s:%03d\n", __assertion, __file, __line);
+	eprintf("Assertion %s failed. %s:%03d\n", __assertion, __file, __line);
 	eat_shit_and_die();
 }
 

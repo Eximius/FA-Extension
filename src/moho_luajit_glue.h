@@ -32,7 +32,13 @@ extern ::TValue TV_FALSE;
 extern ::TValue TV_TRUE;
 extern ::TValue tmp_tv;
 
-extern char STR_BUF[128];
+extern char _STR_BUF[];
+extern int _STR_BUF_I;
+
+/* Reference luajit values in root, so they do not get collected */
+extern void root_ref(::GCobj* lj_val);
+extern void root_unref(::GCobj* lj_val);
+
  
 /** !Not! compatible with GCHeader */
 #define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked
@@ -87,8 +93,9 @@ struct TString{
   ::TValue _lj_v;
 
   TString(const GCstr* lj_val) {
-    setgcrefp(_lj_v.gcr, (GCstr*)lj_val);
-    lj_v->it = LJ_TSTR;
+    setstrV(0, lj_v, (GCstr*)lj_val);
+    // setgcrefp(_lj_v.gcr, (GCstr*)lj_val);
+    // lj_v->it = LJ_TSTR;
 
     printf("TString created: %s, 0x%p\n", strdata(gco2str(gcref(lj_v->gcr))), lj_val);
   }
@@ -110,6 +117,12 @@ struct TValue {
   };
 
   TValue(const ::TValue* lj_val) {
+    if(lj_val == 0) {
+      tt = LUA_TNIL;
+      printf("TValue created: %s, 0x%p\n", "nullptr", lj_val);
+      return;
+    }
+
     tt = itypemap(lj_val);
     // if (tt >= 0)
     //   printf("Unexpected tt for luajit: 0x%x\n", tt);
@@ -132,10 +145,11 @@ struct TValue {
         tt = LUA_TTABLE;
         mh_t = new Table(gco2tab(gcref(lj_val->gcr)));
         break;
-      case ~LJ_TNUMX:
+      case ~LJ_TISNUM:
         tt = LUA_TNUMBER;
         n = numV(lj_val);
-        break;
+        printf("TValue created: %s, %f\n", lj_typename(lj_val), n);
+        return;
       // case ~LJ_TLIGHTUD:
       //   tt = LUA_TLIGHTUSERDATA;
       //   p = lightudV(lj_val);
@@ -153,7 +167,7 @@ struct TValue {
         p = funcV(lj_val);
         break;
       case ~LJ_TUDATA:
-        tt = LUA_TUSERDATA;
+        tt = 8; //LUA_TUSERDATA;
         p = udataV(lj_val);
         break;
       default:
@@ -162,21 +176,21 @@ struct TValue {
         lj_p = (::TValue*)lj_val;
     }
 
-    printf("TValue created: %s, 0x%p\n", lj_typename(lj_val), lj_val);
+    printf("TValue created: %s, 0x%p\n", lj_typename(lj_val), gcV(lj_val));
   }
 
-  // void * operator new(size_t size){
-  //   void* p = ::operator new (size);
-  //   printf("TValue allocated: 0x%p, %d bytes\n", p, size);
+  void * operator new(size_t size){
+    void* p = ::operator new (size);
+    printf("TValue allocated: 0x%p, %d bytes\n", p, size);
 
-  //   return p;
-  // }
+    return p;
+  }
 
-  // void * operator new(size_t size, TValue* addr){
-  //   printf("TValue allocated: 0x%p, %d bytes\n", p, size);
+  void * operator new(size_t size, void* addr){
+    printf("TValue placed at: 0x%p, %d bytes\n", addr, size);
 
-  //   return p;
-  // }
+    return addr;
+  }
 
   ::TValue* lj() const {
     switch(tt) {
@@ -194,14 +208,23 @@ struct TValue {
         return mh_s->lj_v;
       case LUA_TTABLE:
         return &mh_t->lj_v;
+      case 6:// CFunction
       case 7://this is LUA_TFUNCTION:
         setfuncV(0, &tmp_tv, (GCfunc*)p);
+        return &tmp_tv;
+      case 8:// userdata
+        setudataV(0, &tmp_tv, (GCudata*)p);
         return &tmp_tv;
       default:
         printf("Unhandled lua type %d\n", tt);
         eat_shit_and_die();
     }
   }
+
+  ::GCobj* gco() const {
+    return gcV(lj());
+  }
+
   operator ::TValue* () {
     return lj();
   }
@@ -211,6 +234,10 @@ struct TValue {
   }
 
   const char* str() const {
+    const char* color;
+    _STR_BUF_I = (_STR_BUF_I + 1) % 3;
+    char* STR_BUF = _STR_BUF + 128*_STR_BUF_I;
+
     switch(tt) {
       case LUA_TBOOLEAN:
         return p == 0 ? "false" : "true";
@@ -218,16 +245,28 @@ struct TValue {
         sprintf(STR_BUF, "%f", n);
         return STR_BUF;
       case LUA_TSTRING:
-        return strdata(mh_s->lj());
+        color = iswhite(gcV(lj())) ? "w" : "g";
+        sprintf(STR_BUF, "%s %s", color, strdata(mh_s->lj()));
+        break;
       case LUA_TTABLE:
         sprintf(STR_BUF, "table<0x%p>", mh_t->lj_t);//tabref(lj_val);
         return STR_BUF;
       case LUA_TNIL:
         return "nil";
+      case 6:// CFunction
+        sprintf(STR_BUF, "cfunc<0x%p>", funcV(lj()));
+        return STR_BUF;
+      case 7://this is LUA_TFUNCTION:
+        sprintf(STR_BUF, "func<0x%p>", funcV(lj()));
+        return STR_BUF;
+      case 8:// userdata
+        sprintf(STR_BUF, "udata<0x%p>", udataV(lj()));
+        return STR_BUF;
       default:
         printf("Type unimp: %d\n", tt);
         return "unk";
     }
+    return STR_BUF;
   }
 
   int type() { // In lua types
@@ -250,9 +289,13 @@ extern "C" void moho_throw_lua_error(lua_State* L);
 
 #define Lp_to_L(Lp_L_m) (lua_State*)Lp_L_m->_lua_state->lj
 #define CHECK_STACK assert(lua_checkstack(L, 1));
+#define CHECK_STACK_N(X) assert(lua_checkstack(L, (X)));
 
 #define LOG_PUSH \
-  printf("%s:%03d Pushed %s\n", __FILE__, __LINE__, lua_typename(L, lua_type(L, -1)));
+  printf("%s:%03d Pushed %s (0x%p)\n", __FILE__, __LINE__, lua_typename(L, lua_type(L, -1)), L->top[-1].gcr);
+
+#define MAYBE_MOHO_TO_L(X) \
+  (((size_t*)(X))[1] != 0 ? (lua_State*)(X) : (lua_State*)((moho::lua_State*)(X))->lj)
 
 #define CONSERVATIVE_USING_MOHO \
   using moho::LuaState; \

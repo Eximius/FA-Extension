@@ -6,7 +6,14 @@
 #define _NEW
 
 #include "stddef.h"
+#include <stdio.h>
 
+#define printf(...) \
+	fprintf(stderr, __VA_ARGS__);
+
+#define eprintf(...) \
+	fprintf(stderr, __VA_ARGS__);
+	
 extern "C" {
 
 	void* memcpy(void* dst, const void* src, unsigned int sz);
@@ -15,10 +22,10 @@ extern "C" {
 	void *realloc(void *ptr, size_t size);
 	void free(void* p);
 
-	void printf(const char* fmt, ...);
-	int sprintf(char *str, const char *format, ...);
+	// void printf(const char* fmt, ...);
+	// int sprintf(char *str, const char *format, ...);
 	
-	void eat_shit_and_die();
+	void eat_shit_and_die(const char* why = 0);
 }
 
 namespace std {
@@ -36,6 +43,12 @@ inline void* operator new (size_t sz) {
 inline void* operator new (size_t sz, void* p) {
 	return p;
 }
+
+// /* placement new */
+// template<class PickyType>
+// inline void* operator new (size_t sz, PickyType& p) {
+// 	return &p;
+// }
 
 inline void operator delete(void* p) {
 	free(p);
